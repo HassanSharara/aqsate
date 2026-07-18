@@ -58,7 +58,7 @@ class AqsatiApp extends StatelessWidget {
             child: child!,
           );
         },
-        home: const MainLayout(),
+        home:  MainLayout(),
       ),
     );
   }

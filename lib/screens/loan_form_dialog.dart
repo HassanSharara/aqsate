@@ -9,7 +9,9 @@ import '../utils/formatters.dart';
 
 class LoanFormDialog extends StatefulWidget {
   final Customer customer;
-  const LoanFormDialog({super.key, required this.customer});
+  final Loan? loan;
+
+  const LoanFormDialog({super.key, required this.customer, this.loan});
 
   @override
   State<LoanFormDialog> createState() => _LoanFormDialogState();
@@ -17,26 +19,49 @@ class LoanFormDialog extends StatefulWidget {
 
 class _LoanFormDialogState extends State<LoanFormDialog> {
   final _formKey = GlobalKey<FormState>();
-  final _principalCtrl = TextEditingController(text: '1000000');
-  final _profitCtrl = TextEditingController(text: '350000');
-  final _monthsCtrl = TextEditingController(text: '10');
-  DateTime _startDate = DateTime.now();
-  ProfitDistributionMode _mode = ProfitDistributionMode.auto;
+
+  late final TextEditingController _principalCtrl;
+  late final TextEditingController _profitCtrl;
+  late final TextEditingController _expectedInstallmentCtrl;
+  late final TextEditingController _monthsCtrl;
+  late DateTime _startDate;
+  late ProfitDistributionMode _mode;
 
   List<TextEditingController> _manualControllers = [];
+
+  bool get _isEditing => widget.loan != null;
 
   @override
   void initState() {
     super.initState();
-    _principalCtrl.addListener(_refreshPreview);
-    _profitCtrl.addListener(_refreshPreview);
-    _monthsCtrl.addListener(_onMonthsChanged);
+    
+    final double initPrincipal = _isEditing ? widget.loan!.principalAmount : 1000000;
+    final double initProfit = _isEditing ? widget.loan!.profitAmount : 350000;
+    final double initExpectedInstallment = _isEditing 
+        ? ((widget.loan!.principalAmount + widget.loan!.profitAmount) / widget.loan!.months)
+        : (initPrincipal * 0.1);
+    final int initMonths = _isEditing 
+        ? widget.loan!.months 
+        : ((initPrincipal + initProfit) / initExpectedInstallment).ceil();
+
+    _principalCtrl = TextEditingController(text: initPrincipal.round().toString());
+    _profitCtrl = TextEditingController(text: initProfit.round().toString());
+    _expectedInstallmentCtrl = TextEditingController(text: initExpectedInstallment.round().toString());
+    _monthsCtrl = TextEditingController(text: initMonths.toString());
+    _startDate = _isEditing ? DateTime.parse(widget.loan!.startDate) : DateTime.now();
+    _mode = _isEditing ? widget.loan!.distributionMode : ProfitDistributionMode.auto;
+
+    // No global listeners, we use onChanged in the UI to prevent recursive loops!
+    if (_mode == ProfitDistributionMode.manual) {
+      _syncManualControllers();
+    }
   }
 
   @override
   void dispose() {
     _principalCtrl.dispose();
     _profitCtrl.dispose();
+    _expectedInstallmentCtrl.dispose();
     _monthsCtrl.dispose();
     for (final c in _manualControllers) {
       c.dispose();
@@ -48,12 +73,64 @@ class _LoanFormDialogState extends State<LoanFormDialog> {
   double get _profit => double.tryParse(_profitCtrl.text) ?? 0;
   int get _months => int.tryParse(_monthsCtrl.text) ?? 0;
 
-  void _onMonthsChanged() {
+  void _onPrincipalChanged(String val) {
+    final principal = double.tryParse(val) ?? 0;
+    final defaultInstallment = (principal / 1000000.0) * 100000.0;
+    final defaultProfit = principal * 0.35;
+    
+    _expectedInstallmentCtrl.text = defaultInstallment > 0 ? defaultInstallment.round().toString() : '';
+    _profitCtrl.text = defaultProfit > 0 ? defaultProfit.round().toString() : '';
+    
+    final total = principal + defaultProfit;
+    if (defaultInstallment > 0) {
+      final months = (total / defaultInstallment).ceil();
+      _monthsCtrl.text = months.toString();
+    }
     _syncManualControllers();
     setState(() {});
   }
 
-  void _refreshPreview() => setState(() {});
+  void _onProfitChanged(String val) {
+    final principal = double.tryParse(_principalCtrl.text) ?? 0;
+    final profit = double.tryParse(val) ?? 0;
+    final installment = double.tryParse(_expectedInstallmentCtrl.text) ?? ((principal / 1000000.0) * 100000.0);
+    
+    final total = principal + profit;
+    if (installment > 0) {
+      final months = (total / installment).ceil();
+      _monthsCtrl.text = months.toString();
+    }
+    _syncManualControllers();
+    setState(() {});
+  }
+
+  void _onExpectedInstallmentChanged(String val) {
+    final principal = double.tryParse(_principalCtrl.text) ?? 0;
+    final profit = double.tryParse(_profitCtrl.text) ?? 0;
+    final installment = double.tryParse(val) ?? 0;
+    
+    final total = principal + profit;
+    if (installment > 0) {
+      final months = (total / installment).ceil();
+      _monthsCtrl.text = months.toString();
+    }
+    _syncManualControllers();
+    setState(() {});
+  }
+
+  void _onMonthsChanged(String val) {
+    final principal = double.tryParse(_principalCtrl.text) ?? 0;
+    final profit = double.tryParse(_profitCtrl.text) ?? 0;
+    final months = int.tryParse(val) ?? 0;
+    
+    final total = principal + profit;
+    if (months > 0) {
+      final installment = total / months;
+      _expectedInstallmentCtrl.text = installment.round().toString();
+    }
+    _syncManualControllers();
+    setState(() {});
+  }
 
   void _syncManualControllers() {
     final n = _months.clamp(0, 60);
@@ -66,7 +143,11 @@ class _LoanFormDialogState extends State<LoanFormDialog> {
   }
 
   List<double> get _autoPreview =>
-      ProfitCalculator.generateAutoSchedule(totalProfit: _profit, months: _months.clamp(0, 60));
+      ProfitCalculator.generateAutoSchedule(
+        totalProfit: _profit,
+        months: _months.clamp(0, 60),
+        principalAmount: _principal,
+      );
 
   @override
   Widget build(BuildContext context) {
@@ -83,7 +164,6 @@ class _LoanFormDialogState extends State<LoanFormDialog> {
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisSize: MainAxisSize.min,
               children: [
-                // Header
                 Row(
                   children: [
                     Container(
@@ -100,16 +180,20 @@ class _LoanFormDialogState extends State<LoanFormDialog> {
                           ),
                         ],
                       ),
-                      child: const Icon(Icons.add_card_rounded, color: Colors.white, size: 22),
+                      child: Icon(
+                        _isEditing ? Icons.edit_note_rounded : Icons.add_card_rounded,
+                        color: Colors.white,
+                        size: 22,
+                      ),
                     ),
                     const SizedBox(width: 14),
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Text(
-                            'قرض جديد',
-                            style: TextStyle(
+                          Text(
+                            _isEditing ? 'تعديل بيانات القرض' : 'قرض جديد',
+                            style: const TextStyle(
                               color: AppColors.textPrimary,
                               fontSize: 18,
                               fontWeight: FontWeight.w800,
@@ -153,13 +237,11 @@ class _LoanFormDialogState extends State<LoanFormDialog> {
                 Divider(color: AppColors.glassBorder.withOpacity(0.5)),
                 const SizedBox(height: 20),
 
-                // Form body
                 Expanded(
                   child: SingleChildScrollView(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        // Amounts
                         Row(children: [
                           Expanded(
                             child: TextFormField(
@@ -169,8 +251,9 @@ class _LoanFormDialogState extends State<LoanFormDialog> {
                                 labelText: 'المبلغ الأصلي (د.ع)',
                                 prefixIcon: Icon(Icons.account_balance_wallet_outlined),
                               ),
+                              onChanged: _onPrincipalChanged,
                               validator: (v) =>
-                                  (double.tryParse(v ?? '') ?? 0) <= 0 ? 'أدخل مبلغاً صحيحاً' : null,
+                              (double.tryParse(v ?? '') ?? 0) <= 0 ? 'أدخل مبلغاً صحيحاً' : null,
                             ),
                           ),
                           const SizedBox(width: 14),
@@ -182,15 +265,15 @@ class _LoanFormDialogState extends State<LoanFormDialog> {
                                 labelText: 'الأرباح المطلوبة (د.ع)',
                                 prefixIcon: Icon(Icons.trending_up_rounded),
                               ),
+                              onChanged: _onProfitChanged,
                               validator: (v) =>
-                                  (double.tryParse(v ?? '') ?? -1) < 0 ? 'أدخل قيمة صحيحة' : null,
+                              (double.tryParse(v ?? '') ?? -1) < 0 ? 'أدخل قيمة صحيحة' : null,
                             ),
                           ),
                         ]),
 
                         const SizedBox(height: 16),
 
-                        // Quick summary
                         if (_principal > 0 && _profit >= 0)
                           Container(
                             padding: const EdgeInsets.all(14),
@@ -219,12 +302,27 @@ class _LoanFormDialogState extends State<LoanFormDialog> {
                         Row(children: [
                           Expanded(
                             child: TextFormField(
+                              controller: _expectedInstallmentCtrl,
+                              keyboardType: TextInputType.number,
+                              decoration: const InputDecoration(
+                                labelText: 'القسط الشهري المتوقع (د.ع)',
+                                prefixIcon: Icon(Icons.payments_rounded),
+                              ),
+                              onChanged: _onExpectedInstallmentChanged,
+                              validator: (v) =>
+                              (double.tryParse(v ?? '') ?? 0) <= 0 ? 'أدخل قسطاً صحيحاً' : null,
+                            ),
+                          ),
+                          const SizedBox(width: 14),
+                          Expanded(
+                            child: TextFormField(
                               controller: _monthsCtrl,
                               keyboardType: TextInputType.number,
                               decoration: const InputDecoration(
                                 labelText: 'عدد أشهر التسديد',
                                 prefixIcon: Icon(Icons.calendar_month_outlined),
                               ),
+                              onChanged: _onMonthsChanged,
                               validator: (v) {
                                 final n = int.tryParse(v ?? '');
                                 if (n == null || n <= 0) return 'أدخل عدد أشهر صحيح';
@@ -233,36 +331,35 @@ class _LoanFormDialogState extends State<LoanFormDialog> {
                               },
                             ),
                           ),
-                          const SizedBox(width: 14),
-                          Expanded(
-                            child: InkWell(
-                              onTap: () async {
-                                final picked = await showDatePicker(
-                                  context: context,
-                                  initialDate: _startDate,
-                                  firstDate: DateTime(2015),
-                                  lastDate: DateTime(2100),
-                                );
-                                if (picked != null) setState(() => _startDate = picked);
-                              },
-                              borderRadius: BorderRadius.circular(14),
-                              child: InputDecorator(
-                                decoration: const InputDecoration(
-                                  labelText: 'تاريخ بداية القرض',
-                                  prefixIcon: Icon(Icons.calendar_today_outlined),
-                                ),
-                                child: Text(
-                                  Formatters.date(_startDate.toIso8601String()),
-                                  style: const TextStyle(color: AppColors.textPrimary),
-                                ),
-                              ),
+                        ]),
+
+                        const SizedBox(height: 16),
+
+                        InkWell(
+                          onTap: () async {
+                            final picked = await showDatePicker(
+                              context: context,
+                              initialDate: _startDate,
+                              firstDate: DateTime(2015),
+                              lastDate: DateTime(2100),
+                            );
+                            if (picked != null) setState(() => _startDate = picked);
+                          },
+                          borderRadius: BorderRadius.circular(14),
+                          child: InputDecorator(
+                            decoration: const InputDecoration(
+                              labelText: 'تاريخ بداية القرض',
+                              prefixIcon: Icon(Icons.calendar_today_outlined),
+                            ),
+                            child: Text(
+                              Formatters.date(_startDate.toIso8601String()),
+                              style: const TextStyle(color: AppColors.textPrimary),
                             ),
                           ),
-                        ]),
+                        ),
 
                         const SizedBox(height: 20),
 
-                        // Mode selector
                         const Text(
                           'طريقة توزيع الأرباح على الأشهر',
                           style: TextStyle(
@@ -304,7 +401,6 @@ class _LoanFormDialogState extends State<LoanFormDialog> {
 
                 const SizedBox(height: 20),
 
-                // Actions
                 Row(
                   children: [
                     Expanded(
@@ -317,7 +413,7 @@ class _LoanFormDialogState extends State<LoanFormDialog> {
                     Expanded(
                       child: ElevatedButton(
                         onPressed: _save,
-                        child: const Text('إنشاء القرض'),
+                        child: Text(_isEditing ? 'تحديث القرض' : 'إنشاء القرض'),
                       ),
                     ),
                   ],
@@ -447,16 +543,25 @@ class _LoanFormDialogState extends State<LoanFormDialog> {
     }
 
     final loan = Loan(
+      id: _isEditing ? widget.loan!.id : null,
       customerId: widget.customer.id!,
       principalAmount: _principal,
       profitAmount: _profit,
       months: _months,
       startDate: _startDate.toIso8601String().split('T').first,
       distributionMode: _mode,
-      createdAt: Formatters.todayIso(),
+      createdAt: _isEditing ? widget.loan!.createdAt : Formatters.todayIso(),
+      status: _isEditing ? widget.loan!.status : LoanStatus.active,
     );
 
-    context.read<AppProvider>().createLoan(loan: loan, manualProfitSchedule: manualSchedule);
+    final provider = context.read<AppProvider>();
+
+    if (_isEditing) {
+      provider.updateLoan(loan);
+    } else {
+      provider.createLoan(loan: loan, manualProfitSchedule: manualSchedule);
+    }
+
     Navigator.pop(context);
   }
 }

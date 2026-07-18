@@ -46,7 +46,7 @@ class DashboardScreen extends StatelessWidget {
                     final wide = c.maxWidth > 800;
                     final cards = [
                       _StatCard(
-                        title: 'رأس المال المُقرض',
+                        title: 'مجموع الاموال المقرضة',
                         value: Formatters.currency(totalPrincipal),
                         icon: Icons.account_balance_wallet_rounded,
                         gradient: AppColors.primaryGradient,
@@ -62,7 +62,7 @@ class DashboardScreen extends StatelessWidget {
                         trendUp: true,
                       ),
                       _StatCard(
-                        title: 'قروض نشطة',
+                        title: 'القروض الغير مكتملة',
                         value: '$activeCount',
                         icon: Icons.hourglass_bottom_rounded,
                         gradient: AppColors.infoGradient,
@@ -125,7 +125,7 @@ class DashboardScreen extends StatelessWidget {
                             Icon(Icons.bar_chart_rounded, color: AppColors.primary, size: 14),
                             SizedBox(width: 6),
                             Text(
-                              'آخر 8 قروض',
+                              'آخر  قروض',
                               style: TextStyle(
                                 color: AppColors.primary,
                                 fontSize: 12,

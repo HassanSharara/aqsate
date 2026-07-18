@@ -96,12 +96,56 @@ class AppProvider extends ChangeNotifier {
     return loanId;
   }
 
-  Future<void> updateLoan(Loan loan) async {
+  Future<void> updateLoan(Loan loan, {List<double>? manualProfitSchedule}) async {
     final db = await _dbHelper.database;
-    await db.update('loans', loan.toMap(), where: 'id = ?', whereArgs: [loan.id]);
+
+    await db.transaction((txn) async {
+      await txn.update(
+        'loans',
+        loan.toMap(),
+        where: 'id = ?',
+        whereArgs: [loan.id],
+      );
+
+      await txn.delete(
+        'installments',
+        where: 'loan_id = ?',
+        whereArgs: [loan.id],
+      );
+
+      List<double> profitDistribution;
+      if (loan.distributionMode == ProfitDistributionMode.manual && manualProfitSchedule != null) {
+        profitDistribution = manualProfitSchedule;
+      } else {
+        profitDistribution = ProfitCalculator.generateAutoSchedule(
+          totalProfit: loan.profitAmount,
+          months: loan.months,
+          principalAmount: loan.principalAmount,
+        );
+      }
+
+      final double monthlyPrincipal = loan.principalAmount / loan.months;
+      final DateTime start = DateTime.parse(loan.startDate);
+
+      for (int i = 0; i < loan.months; i++) {
+        final double installmentProfit = profitDistribution.length > i ? profitDistribution[i] : 0.0;
+        final double totalMonthlyAmount = monthlyPrincipal + installmentProfit;
+        final DateTime dueDate = DateTime(start.year, start.month + i, start.day);
+
+        await txn.insert('installments', {
+          'loan_id': loan.id,
+          'month_index': i,
+          'due_date': dueDate.toIso8601String().split('T').first,
+          'scheduled_profit': installmentProfit,
+          'payment_amount': totalMonthlyAmount,
+          'payment_date': null,
+          'notes': '',
+        });
+      }
+    });
+
     await loadAllLoans();
   }
-
   Future<void> deleteLoan(int id) async {
     final db = await _dbHelper.database;
     await db.delete('loans', where: 'id = ?', whereArgs: [id]);

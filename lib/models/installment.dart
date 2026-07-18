@@ -78,6 +78,9 @@ class InstallmentRow {
   final double remainingPrincipal; // المتبقي من المبلغ الأصلي
   final double remainingProfit; // المتبقي من الأرباح
   final double remainingTotal; // المتبقي من المبلغ الكلي مع الأرباح
+  final double expectedInstallment; // القسط المفترض لهذا الشهر
+  final double expectedRemainingPrincipal; // المتبقي المفترض من الأصل
+  final double expectedRemainingTotal; // المتبقي المفترض من الكلي
 
   InstallmentRow({
     required this.installment,
@@ -86,5 +89,8 @@ class InstallmentRow {
     required this.remainingPrincipal,
     required this.remainingProfit,
     required this.remainingTotal,
+    required this.expectedInstallment,
+    required this.expectedRemainingPrincipal,
+    required this.expectedRemainingTotal,
   });
 }
