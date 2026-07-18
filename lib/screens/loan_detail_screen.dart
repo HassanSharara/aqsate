@@ -52,7 +52,7 @@ class _LoanDetailScreenState extends State<LoanDetailScreen> {
     final totalPaid = rows.fold<double>(0, (s, r) => s + r.installment.paymentAmount);
     final remainingTotal = rows.isNotEmpty ? rows.last.remainingTotal : loan.totalAmount;
     final isFullyPaid = remainingTotal <= 0.01;
-
+    final Size size = MediaQuery.sizeOf(context);
     return Container(
       decoration: const BoxDecoration(
         gradient: LinearGradient(
@@ -73,18 +73,18 @@ class _LoanDetailScreenState extends State<LoanDetailScreen> {
           title: Row(
             children: [
               CircleAvatar(
-                radius: 18,
+                radius: 24,
                 backgroundColor: AppColors.primary.withOpacity(0.2),
                 child: Text(
                   widget.customerName.isNotEmpty ? widget.customerName[0] : '?',
                   style: const TextStyle(
                     color: AppColors.primary,
                     fontWeight: FontWeight.w800,
-                    fontSize: 14,
+                    fontSize: 18,
                   ),
                 ),
               ),
-              const SizedBox(width: 12),
+              const SizedBox(width: 16),
               Text('قرض ${widget.customerName}'),
             ],
           ),
@@ -92,7 +92,7 @@ class _LoanDetailScreenState extends State<LoanDetailScreen> {
         body: _loading
             ? const Center(child: CircularProgressIndicator(color: AppColors.primary))
             : SingleChildScrollView(
-          padding: const EdgeInsets.fromLTRB(28, 8, 28, 28),
+          padding: const EdgeInsets.fromLTRB(36, 12, 36, 36),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -101,7 +101,7 @@ class _LoanDetailScreenState extends State<LoanDetailScreen> {
                 totalPaid: totalPaid,
                 remainingTotal: remainingTotal,
               ),
-              const SizedBox(height: 28),
+              const SizedBox(height: 36),
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
@@ -109,35 +109,35 @@ class _LoanDetailScreenState extends State<LoanDetailScreen> {
                     'جدول الأقساط',
                     style: TextStyle(
                       color: AppColors.textPrimary,
-                      fontSize: 18,
+                      fontSize: 24,
                       fontWeight: FontWeight.w700,
                     ),
                   ),
                   if (isFullyPaid || loan.status == LoanStatus.completed)
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
                       decoration: BoxDecoration(
                         gradient: AppColors.successGradient,
-                        borderRadius: BorderRadius.circular(20),
+                        borderRadius: BorderRadius.circular(24),
                         boxShadow: [
                           BoxShadow(
                             color: AppColors.success.withOpacity(0.35),
-                            blurRadius: 10,
-                            offset: const Offset(0, 3),
+                            blurRadius: 14,
+                            offset: const Offset(0, 4),
                           ),
                         ],
                       ),
                       child: const Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          Icon(Icons.check_circle_rounded, color: Colors.white, size: 16),
-                          SizedBox(width: 6),
+                          Icon(Icons.check_circle_rounded, color: Colors.white, size: 22),
+                          SizedBox(width: 8),
                           Text(
                             'تم سداد القرض بالكامل ✓',
                             style: TextStyle(
                               color: Colors.white,
                               fontWeight: FontWeight.w700,
-                              fontSize: 13,
+                              fontSize: 16,
                             ),
                           ),
                         ],
@@ -145,34 +145,38 @@ class _LoanDetailScreenState extends State<LoanDetailScreen> {
                     ),
                 ],
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 20),
               GlassContainer(
-                borderRadius: BorderRadius.circular(18),
+                borderRadius: BorderRadius.circular(22),
                 padding: EdgeInsets.zero,
                 child: ClipRRect(
-                  borderRadius: BorderRadius.circular(18),
+                  borderRadius: BorderRadius.circular(22),
                   child: SingleChildScrollView(
                     scrollDirection: Axis.horizontal,
-                    child: DataTable(
-                      columnSpacing: 20,
-                      dataRowMinHeight: 56,
-                      dataRowMaxHeight: 68,
-                      headingTextStyle: const TextStyle(
-                        color: AppColors.textSecondary,
-                        fontSize: 12,
-                        fontWeight: FontWeight.w700,
+                    child: SizedBox(
+                      width:size.width,
+                      child: DataTable(
+                        columnSpacing: 32,
+                        dataRowMinHeight: 76,
+                        dataRowMaxHeight: 92,
+                        headingRowHeight: 56,
+                        headingTextStyle: const TextStyle(
+                          color: AppColors.textSecondary,
+                          fontSize: 15,
+                          fontWeight: FontWeight.w700,
+                        ),
+                        columns: const [
+                          DataColumn(label: Text('الشهر')),
+                          DataColumn(label: Text('الفائدة المجدولة')),
+                          DataColumn(label: Text('القسط المفترض هذا الشهر')),
+                          DataColumn(label: Text('المتبقي الكلي')),
+                          DataColumn(label: Text('المتبقي الصافي')),
+                          DataColumn(label: Text('المسدد من قبل الزبون')),
+                          DataColumn(label: Text('تاريخ الاستحقاق')),
+                          DataColumn(label: Text('')),
+                        ],
+                        rows: rows.map((r) => _buildRow(context, r, isFullyPaid, loan.principalAmount)).toList(),
                       ),
-                      columns: const [
-                        DataColumn(label: Text('الشهر')),
-                        DataColumn(label: Text('الفائدة المجدولة')),
-                        DataColumn(label: Text('القسط المفترض هذا الشهر')),
-                        DataColumn(label: Text('المتبقي الكلي')),
-                        DataColumn(label: Text('المتبقي الصافي')),
-                        DataColumn(label: Text('المسدد من قبل الزبون')),
-                        DataColumn(label: Text('تاريخ الاستحقاق')),
-                        DataColumn(label: Text('')),
-                      ],
-                      rows: rows.map((r) => _buildRow(context, r, isFullyPaid, loan.principalAmount)).toList(),
                     ),
                   ),
                 ),
@@ -200,13 +204,14 @@ class _LoanDetailScreenState extends State<LoanDetailScreen> {
       cells: [
         DataCell(
           Container(
-            width: 32,
-            height: 32,
+            width: 44,
+            height: 44,
             decoration: BoxDecoration(
-              color: completed
-                  ? AppColors.success.withOpacity(0.15)
+              color: r.expectedInstallment <= inst.paymentAmount
+                  ? AppColors.success.withOpacity(0.8)
+              : paid ? AppColors.warning .withValues(alpha: 0.8)
                   : AppColors.glassLight,
-              borderRadius: BorderRadius.circular(8),
+              borderRadius: BorderRadius.circular(10),
             ),
             alignment: Alignment.center,
             child: Text(
@@ -214,21 +219,21 @@ class _LoanDetailScreenState extends State<LoanDetailScreen> {
               style: TextStyle(
                 fontWeight: FontWeight.w800,
                 color: completed ? AppColors.success : AppColors.textPrimary,
-                fontSize: 13,
+                fontSize: 17,
               ),
             ),
           ),
         ),
         DataCell(Text(
           Formatters.currency(inst.scheduledProfit),
-          style: const TextStyle(color: AppColors.accent, fontWeight: FontWeight.w700),
+          style: const TextStyle(color: AppColors.accent, fontWeight: FontWeight.w700, fontSize: 15),
         )),
         DataCell(
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
             decoration: BoxDecoration(
               color: AppColors.primary.withOpacity(0.1),
-              borderRadius: BorderRadius.circular(8),
+              borderRadius: BorderRadius.circular(10),
               border: Border.all(color: AppColors.primary.withOpacity(0.3)),
             ),
             child: Column(
@@ -240,12 +245,12 @@ class _LoanDetailScreenState extends State<LoanDetailScreen> {
                   style: const TextStyle(
                     color: AppColors.primary,
                     fontWeight: FontWeight.w800,
-                    fontSize: 13,
+                    fontSize: 16,
                   ),
                 ),
                 Text(
                   'أصل: ${Formatters.currency(r.expectedInstallment - inst.scheduledProfit)} | ربح: ${Formatters.currency(inst.scheduledProfit)}',
-                  style: const TextStyle(color: AppColors.textSecondary, fontSize: 9),
+                  style: const TextStyle(color: AppColors.textSecondary, fontSize: 12),
                 ),
               ],
             ),
@@ -258,11 +263,11 @@ class _LoanDetailScreenState extends State<LoanDetailScreen> {
             children: [
               Text(
                 Formatters.currency(r.remainingTotal),
-                style: const TextStyle(fontWeight: FontWeight.w800, color: AppColors.textPrimary, fontSize: 13),
+                style: const TextStyle(fontWeight: FontWeight.w800, color: AppColors.textPrimary, fontSize: 16),
               ),
               Text(
                 'المفترض: ${Formatters.currency(r.expectedRemainingTotal)}',
-                style: const TextStyle(color: AppColors.textSecondary, fontSize: 10),
+                style: const TextStyle(color: AppColors.textSecondary, fontSize: 13),
               ),
             ],
           ),
@@ -274,11 +279,11 @@ class _LoanDetailScreenState extends State<LoanDetailScreen> {
             children: [
               Text(
                 Formatters.currency(r.remainingPrincipal),
-                style: const TextStyle(color: AppColors.textPrimary, fontSize: 13),
+                style: const TextStyle(color: AppColors.textPrimary, fontSize: 16),
               ),
               Text(
                 'المفترض: ${Formatters.currency(r.expectedRemainingPrincipal)}',
-                style: const TextStyle(color: AppColors.textSecondary, fontSize: 10),
+                style: const TextStyle(color: AppColors.textSecondary, fontSize: 13),
               ),
             ],
           ),
@@ -294,14 +299,14 @@ class _LoanDetailScreenState extends State<LoanDetailScreen> {
                           : isUnderpaid
                               ? Icons.arrow_downward_rounded
                               : Icons.check_circle_rounded,
-                      size: 14,
+                      size: 18,
                       color: isOverpaid
                           ? AppColors.info
                           : isUnderpaid
                               ? AppColors.accent
                               : AppColors.success,
                     ),
-                    const SizedBox(width: 5),
+                    const SizedBox(width: 7),
                     Text(
                       Formatters.currency(inst.paymentAmount),
                       style: TextStyle(
@@ -311,14 +316,14 @@ class _LoanDetailScreenState extends State<LoanDetailScreen> {
                                 ? AppColors.accent
                                 : AppColors.success,
                         fontWeight: FontWeight.w700,
-                        fontSize: 13,
+                        fontSize: 16,
                       ),
                     ),
                   ],
                 )
-              : const Text('—', style: TextStyle(color: AppColors.textSecondary, fontSize: 13)),
+              : const Text('—', style: TextStyle(color: AppColors.textSecondary, fontSize: 16)),
         ),
-        DataCell(Text(Formatters.date(inst.dueDate), style: const TextStyle(fontSize: 12))),
+        DataCell(Text(Formatters.date(inst.dueDate), style: const TextStyle(fontSize: 15))),
         DataCell(
           (isLoanFullyPaid && !paid)
               ? const SizedBox.shrink()
@@ -351,30 +356,30 @@ class _LoanDetailScreenState extends State<LoanDetailScreen> {
         title: Row(
           children: [
             Container(
-              width: 36,
-              height: 36,
+              width: 46,
+              height: 46,
               decoration: BoxDecoration(
                 gradient: AppColors.primaryGradient,
-                borderRadius: BorderRadius.circular(10),
+                borderRadius: BorderRadius.circular(13),
               ),
-              child: const Icon(Icons.payments_rounded, color: Colors.white, size: 18),
+              child: const Icon(Icons.payments_rounded, color: Colors.white, size: 24),
             ),
-            const SizedBox(width: 12),
+            const SizedBox(width: 16),
             Text('تسديد قسط الشهر ${inst.monthIndex}'),
           ],
         ),
         content: SizedBox(
-          width: 360,
+          width: 460,
           child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               // بطاقة معلومات القسط المفترض
               Container(
-                padding: const EdgeInsets.all(14),
+                padding: const EdgeInsets.all(20),
                 decoration: BoxDecoration(
                   color: AppColors.primary.withOpacity(0.08),
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(16),
                   border: Border.all(color: AppColors.primary.withOpacity(0.25)),
                 ),
                 child: Column(
@@ -382,24 +387,24 @@ class _LoanDetailScreenState extends State<LoanDetailScreen> {
                   children: [
                     Row(
                       children: [
-                        const Icon(Icons.calculate_rounded, color: AppColors.primary, size: 16),
-                        const SizedBox(width: 8),
+                        const Icon(Icons.calculate_rounded, color: AppColors.primary, size: 22),
+                        const SizedBox(width: 10),
                         const Text(
                           'تفاصيل القسط المفترض هذا الشهر',
-                          style: TextStyle(color: AppColors.primary, fontSize: 13, fontWeight: FontWeight.w800),
+                          style: TextStyle(color: AppColors.primary, fontSize: 16, fontWeight: FontWeight.w800),
                         ),
                       ],
                     ),
-                    const SizedBox(height: 10),
+                    const SizedBox(height: 14),
                     _InfoRow('قسط الأصل', Formatters.currency(principalPart), AppColors.info),
-                    const SizedBox(height: 6),
-                    _InfoRow('الفائدة المجدولة', Formatters.currency(inst.scheduledProfit), AppColors.accent),
-                    Divider(color: AppColors.glassBorder, height: 16),
+                    const SizedBox(height: 8),
+                    _InfoRow('الفائدة', Formatters.currency(inst.scheduledProfit), AppColors.accent),
+                    Divider(color: AppColors.glassBorder, height: 20),
                     _InfoRow('إجمالي القسط المفترض', Formatters.currency(r.expectedInstallment), AppColors.primary),
                   ],
                 ),
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 20),
               TextField(
                 controller: ctrl,
                 autofocus: true,
@@ -458,7 +463,7 @@ class _PaymentIconButtonState extends State<_PaymentIconButton> {
         child: IconButton(
           icon: Icon(
             widget.paid ? Icons.edit_rounded : Icons.payments_rounded,
-            size: 20,
+            size: 26,
             color: AppColors.primary,
           ),
           tooltip: widget.paid ? 'تعديل الدفعة' : 'تسجيل دفعة',
@@ -481,14 +486,14 @@ class _SummaryHeader extends StatelessWidget {
     loan.totalAmount == 0 ? 0.0 : (1 - (remainingTotal / loan.totalAmount)).clamp(0.0, 1.0);
 
     return GlassContainer(
-      padding: const EdgeInsets.all(24),
-      borderRadius: BorderRadius.circular(20),
+      padding: const EdgeInsets.all(32),
+      borderRadius: BorderRadius.circular(24),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Wrap(
-            spacing: 28,
-            runSpacing: 16,
+            spacing: 36,
+            runSpacing: 22,
             children: [
               _Stat('المبلغ الأصلي', Formatters.currency(loan.principalAmount), AppColors.info),
               _Stat('إجمالي الأرباح', Formatters.currency(loan.profitAmount), AppColors.accent),
@@ -499,38 +504,38 @@ class _SummaryHeader extends StatelessWidget {
               _Stat('المتبقي', Formatters.currency(remainingTotal), AppColors.danger),
             ],
           ),
-          const SizedBox(height: 22),
+          const SizedBox(height: 28),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
                 'نسبة التسديد',
-                style: const TextStyle(color: AppColors.textSecondary, fontSize: 12.5),
+                style: const TextStyle(color: AppColors.textSecondary, fontSize: 16),
               ),
               Text(
                 '${(progress * 100).toStringAsFixed(0)}%',
                 style: const TextStyle(
                   color: AppColors.primary,
                   fontWeight: FontWeight.w800,
-                  fontSize: 13,
+                  fontSize: 17,
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 10),
           Stack(
             children: [
               Container(
-                height: 10,
+                height: 14,
                 decoration: BoxDecoration(
                   color: AppColors.glassLight,
-                  borderRadius: BorderRadius.circular(8),
+                  borderRadius: BorderRadius.circular(10),
                 ),
               ),
               FractionallySizedBox(
                 widthFactor: progress,
                 child: Container(
-                  height: 10,
+                  height: 14,
                   decoration: BoxDecoration(
                     gradient: progress >= 1
                         ? AppColors.successGradient
@@ -565,13 +570,13 @@ class _Stat extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label, style: const TextStyle(color: AppColors.textSecondary, fontSize: 12)),
-        const SizedBox(height: 4),
+        Text(label, style: const TextStyle(color: AppColors.textSecondary, fontSize: 15)),
+        const SizedBox(height: 6),
         Text(
           value,
           style: TextStyle(
             fontWeight: FontWeight.w800,
-            fontSize: 15,
+            fontSize: 19,
             color: color == AppColors.textSecondary ? AppColors.textPrimary : color,
           ),
         ),
@@ -591,13 +596,13 @@ class _InfoRow extends StatelessWidget {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Text(label, style: const TextStyle(color: AppColors.textSecondary, fontSize: 12)),
+        Text(label, style: const TextStyle(color: AppColors.textSecondary, fontSize: 15)),
         Text(
           value,
           style: TextStyle(
             color: color,
             fontWeight: FontWeight.w800,
-            fontSize: 13,
+            fontSize: 16,
           ),
         ),
       ],

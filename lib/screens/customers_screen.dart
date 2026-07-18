@@ -193,84 +193,93 @@ class _CustomersTable extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final Size size = MediaQuery.sizeOf(context);
     return GlassContainer(
       borderRadius: BorderRadius.circular(18),
       padding: EdgeInsets.zero,
       child: ClipRRect(
         borderRadius: BorderRadius.circular(18),
         child: SingleChildScrollView(
-          child: DataTable(
-            columns: const [
-              DataColumn(label: Text('الاسم')),
-              DataColumn(label: Text('الهاتف')),
-              DataColumn(label: Text('العنوان')),
-              DataColumn(label: Text('عدد القروض')),
-              DataColumn(label: Text('')),
-            ],
-            rows: customers.map((c) {
-              final loanCount = provider.loansForCustomer(c.id!).length;
-              final initials = c.name.isNotEmpty ? c.name[0] : '?';
-              return DataRow(cells: [
-                DataCell(
-                  Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      CircleAvatar(
-                        radius: 16,
-                        backgroundColor: AppColors.primary.withOpacity(0.18),
-                        child: Text(
-                          initials,
-                          style: const TextStyle(
-                            color: AppColors.primary,
-                            fontWeight: FontWeight.w800,
-                            fontSize: 13,
+          child: SizedBox(
+            width:size.width,
+            child: DataTable(
+              dataRowMinHeight:60,
+              dataRowMaxHeight:100,
+              showCheckboxColumn: false,
+              dataTextStyle:TextStyle(fontSize:20),
+              columns: const [
+                DataColumn(label: Text('الاسم')),
+                DataColumn(label: Text('الهاتف')),
+                DataColumn(label: Text('العنوان')),
+                DataColumn(label: Text('عدد القروض')),
+                DataColumn(label: Text('')),
+              ],
+              rows: customers.map((c) {
+                final loanCount = provider.loansForCustomer(c.id!).length;
+                final initials = c.name.isNotEmpty ? c.name[0] : '?';
+                return DataRow(cells: [
+                  DataCell(
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        CircleAvatar(
+                          radius: 16,
+                          backgroundColor: AppColors.primary.withOpacity(0.18),
+                          child: Text(
+                            initials,
+                            style: const TextStyle(
+                              color: AppColors.primary,
+                              fontWeight: FontWeight.w800,
+                              fontSize: 13,
+                            ),
                           ),
                         ),
+                        const SizedBox(width: 10),
+                        Text(c.name, style: const TextStyle(fontWeight: FontWeight.w700)),
+                      ],
+                    ),
+                    onTap: () => _open(context, c),
+                  ),
+                  DataCell(Text(c.phone.isEmpty ? '—' : c.phone)),
+                  DataCell(Text(c.address.isEmpty ? '—' : c.address)),
+                  DataCell(
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: loanCount > 0
+                            ? AppColors.info.withOpacity(0.15)
+                            : AppColors.glassLight,
+                        borderRadius: BorderRadius.circular(20),
                       ),
-                      const SizedBox(width: 10),
-                      Text(c.name, style: const TextStyle(fontWeight: FontWeight.w700)),
-                    ],
-                  ),
-                  onTap: () => _open(context, c),
-                ),
-                DataCell(Text(c.phone.isEmpty ? '—' : c.phone)),
-                DataCell(Text(c.address.isEmpty ? '—' : c.address)),
-                DataCell(
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: loanCount > 0
-                          ? AppColors.info.withOpacity(0.15)
-                          : AppColors.glassLight,
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    child: Text(
-                      '$loanCount',
-                      style: TextStyle(
-                        color: loanCount > 0 ? AppColors.info : AppColors.textSecondary,
-                        fontWeight: FontWeight.w700,
-                        fontSize: 13,
+                      child: Text(
+                        '$loanCount',
+                        style: TextStyle(
+                          color: loanCount > 0 ? AppColors.info : AppColors.textSecondary,
+                          fontWeight: FontWeight.w700,
+                          fontSize: 13,
+                        ),
                       ),
                     ),
                   ),
-                ),
-                DataCell(Row(children: [
-                  _ActionIconBtn(
-                    icon: Icons.edit_rounded,
-                    color: AppColors.info,
-                    onPressed: () => showDialog(
-                      context: context,
-                      builder: (_) => _CustomerFormDialog(existing: c),
+                  DataCell(Row(children: [
+                    _ActionIconBtn(
+                      icon: Icons.edit_rounded,
+                      color: AppColors.info,
+                      onPressed: () => showDialog(
+                        context: context,
+                        builder: (_) => _CustomerFormDialog(existing: c),
+                      ),
                     ),
-                  ),
-                  _ActionIconBtn(
-                    icon: Icons.delete_outline_rounded,
-                    color: AppColors.danger,
-                    onPressed: () => _confirmDelete(context, c),
-                  ),
-                ])),
-              ]);
-            }).toList(),
+                    const SizedBox(width:20,),
+                    _ActionIconBtn(
+                      icon: Icons.delete_outline_rounded,
+                      color: AppColors.danger,
+                      onPressed: () => _confirmDelete(context, c),
+                    ),
+                  ])),
+                ]);
+              }).toList(),
+            ),
           ),
         ),
       ),
@@ -328,7 +337,7 @@ class _ActionIconBtnState extends State<_ActionIconBtn> {
           borderRadius: BorderRadius.circular(8),
         ),
         child: IconButton(
-          icon: Icon(widget.icon, size: 20, color: widget.color),
+          icon: Icon(widget.icon, size: 30, color: widget.color),
           onPressed: widget.onPressed,
         ),
       ),

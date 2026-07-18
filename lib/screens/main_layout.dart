@@ -789,73 +789,80 @@ class _LoansTable extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return DataTable(
-      showCheckboxColumn: false,
-      columns: const [
-        DataColumn(label: Text('العميل')),
-        DataColumn(label: Text('المبلغ الأصلي')),
-        DataColumn(label: Text('الأرباح')),
-        DataColumn(label: Text('المبلغ الكلي')),
-        DataColumn(label: Text('الأشهر')),
-        DataColumn(label: Text('البداية')),
-        DataColumn(label: Text('الحالة')),
-        DataColumn(label: Text('إجراءات')),
-      ],
-      rows: loans.map((l) {
-        final c = customersById[l.customerId];
-        return DataRow(
-          onSelectChanged: (_) => onRowTap(l),
-          cells: [
-            DataCell(
-              Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  CircleAvatar(
-                    radius: 16,
-                    backgroundColor: AppColors.primary.withOpacity(0.18),
-                    child: Text(
-                      c?.name.isNotEmpty == true ? c!.name[0] : '?',
-                      style: const TextStyle(
-                        color: AppColors.primary,
-                        fontWeight: FontWeight.w800,
-                        fontSize: 13,
+    final Size size = MediaQuery.sizeOf(context);
+    return SizedBox(
+      width:size.width,
+      child: DataTable(
+        dataRowMinHeight:60,
+        dataRowMaxHeight:100,
+        showCheckboxColumn: false,
+        dataTextStyle:TextStyle(fontSize:20),
+        columns: const [
+          DataColumn(label: Text('العميل')),
+          DataColumn(label: Text('المبلغ الأصلي')),
+          DataColumn(label: Text('الأرباح')),
+          DataColumn(label: Text('المبلغ الكلي')),
+          DataColumn(label: Text('الأشهر')),
+          DataColumn(label: Text('البداية')),
+          DataColumn(label: Text('الحالة')),
+          DataColumn(label: Text('إجراءات')),
+        ],
+        rows: loans.map((l) {
+          final c = customersById[l.customerId];
+          return DataRow(
+            onSelectChanged: (_) => onRowTap(l),
+            cells: [
+              DataCell(
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    CircleAvatar(
+                      radius: 16,
+                      backgroundColor: AppColors.primary.withOpacity(0.18),
+                      child: Text(
+                        c?.name.isNotEmpty == true ? c!.name[0] : '?',
+                        style: const TextStyle(
+                          color: AppColors.primary,
+                          fontWeight: FontWeight.w800,
+                          fontSize: 13,
+                        ),
                       ),
                     ),
-                  ),
-                  const SizedBox(width: 10),
-                  Text(c?.name ?? '—',
-                      style: const TextStyle(fontWeight: FontWeight.w700)),
-                ],
+                    const SizedBox(width: 10),
+                    Text(c?.name ?? '—',
+                        style: const TextStyle(fontWeight: FontWeight.w700)),
+                  ],
+                ),
               ),
-            ),
-            DataCell(Text(Formatters.currency(l.principalAmount))),
-            DataCell(Text(Formatters.currency(l.profitAmount),
-                style: const TextStyle(color: AppColors.accent))),
-            DataCell(Text(Formatters.currency(l.totalAmount),
-                style: const TextStyle(fontWeight: FontWeight.w700))),
-            DataCell(Text('${l.months} شهر')),
-            DataCell(Text(Formatters.date(l.startDate))),
-            DataCell(_StatusBadge(status: l.status)),
-            DataCell(
-              Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  IconButton(
-                    icon: const Icon(Icons.edit_note_rounded, color: AppColors.primary, size: 22),
-                    tooltip: 'تعديل القرض',
-                    onPressed: () => onEditTap(l),
-                  ),
-                  IconButton(
-                    icon: const Icon(Icons.delete_outline_rounded, color: AppColors.danger, size: 20),
-                    tooltip: 'حذف القرض',
-                    onPressed: () => onDeleteTap(l),
-                  ),
-                ],
+              DataCell(Text(Formatters.currency(l.principalAmount))),
+              DataCell(Text(Formatters.currency(l.profitAmount),
+                  style: const TextStyle(color: AppColors.accent))),
+              DataCell(Text(Formatters.currency(l.totalAmount),
+                  style: const TextStyle(fontWeight: FontWeight.w700))),
+              DataCell(Text('${l.months} شهر')),
+              DataCell(Text(Formatters.date(l.startDate))),
+              DataCell(_StatusBadge(status: l.status)),
+              DataCell(
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    IconButton(
+                      icon: const Icon(Icons.edit_note_rounded, color: AppColors.primary, size: 22),
+                      tooltip: 'تعديل القرض',
+                      onPressed: () => onEditTap(l),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.delete_outline_rounded, color: AppColors.danger, size: 20),
+                      tooltip: 'حذف القرض',
+                      onPressed: () => onDeleteTap(l),
+                    ),
+                  ],
+                ),
               ),
-            ),
-          ],
-        );
-      }).toList(),
+            ],
+          );
+        }).toList(),
+      ),
     );
   }
 }
