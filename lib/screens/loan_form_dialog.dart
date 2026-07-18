@@ -37,9 +37,8 @@ class _LoanFormDialogState extends State<LoanFormDialog> {
     
     final double initPrincipal = _isEditing ? widget.loan!.principalAmount : 1000000;
     final double initProfit = _isEditing ? widget.loan!.profitAmount : 350000;
-    final double initExpectedInstallment = _isEditing 
-        ? ((widget.loan!.principalAmount + widget.loan!.profitAmount) / widget.loan!.months)
-        : (initPrincipal * 0.1);
+    // القاعدة: 100,000 قسط أصل لكل مليون دينار
+    final double initExpectedInstallment = (initPrincipal / 1000000.0) * 100000.0;
     final int initMonths = _isEditing 
         ? widget.loan!.months 
         : ((initPrincipal + initProfit) / initExpectedInstallment).ceil();

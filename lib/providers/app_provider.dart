@@ -62,7 +62,6 @@ class AppProvider extends ChangeNotifier {
   List<Loan> loansForCustomer(int customerId) =>
       allLoans.where((l) => l.customerId == customerId).toList();
 
-  /// ينشئ قرضاً جديداً ويولّد جدول الأقساط الشهري تلقائياً
   Future<int> createLoan({
     required Loan loan,
     List<double>? manualProfitSchedule,
@@ -76,7 +75,10 @@ class AppProvider extends ChangeNotifier {
             ProfitCalculator.generateEqualSchedule(
                 totalProfit: loan.profitAmount, months: loan.months))
         : ProfitCalculator.generateAutoSchedule(
-            totalProfit: loan.profitAmount, months: loan.months, roundTo: roundTo);
+            totalProfit: loan.profitAmount, months: loan.months.clamp(0, 60),
+      principalAmount: loan.principalAmount
+    );
+
 
     final startDate = DateTime.parse(loan.startDate);
     final batch = db.batch();
@@ -201,7 +203,6 @@ class AppProvider extends ChangeNotifier {
       whereArgs: [inst.id],
     );
 
-    // تحقق تلقائياً هل اكتمل تسديد القرض بالكامل -> حدّث حالته
     await _checkAndUpdateLoanStatus(inst.loanId);
     notifyListeners();
   }

@@ -111,8 +111,7 @@ class ProfitCalculator {
   static List<double> generateEqualSchedule({
     required double totalProfit,
     required int months,
-  })
-  {
+  }) {
     if (months <= 0) return [];
     if (months == 1) return [totalProfit.roundToDouble()];
 
@@ -139,15 +138,15 @@ class ProfitCalculator {
     required List<Installment> installments,
   }) {
     final List<Installment> sorted = List.of(installments)
-      ..sort((a, b) => a.monthIndex.compareTo(b.monthIndex));
+      ..sort((a, b) {
+        return a.monthIndex.compareTo(b.monthIndex);
+      });
 
-    final int monthsCount = sorted.length;
-    // القسط الشهري المفترض لأصل المبلغ
-    final double expectedMonthlyPrincipal = monthsCount > 0 ? principalAmount / monthsCount : 0;
+    final double expectedMonthlyPrincipal = (principalAmount / 1000000.0) * 100000.0;
 
     double runningPrincipalPaid = 0;
     double runningProfitPaid = 0;
-    double runningTotalPaid = 0; // الدفوعات التراكمية الفعلية حتى الشهر الحالي
+    double runningTotalPaid = 0;
 
     double runningExpectedPrincipalPaid = 0;
     double runningExpectedProfitPaid = 0;
@@ -159,40 +158,43 @@ class ProfitCalculator {
       double profitPortion = 0;
       double principalPortion = 0;
 
-      // إذا كان هناك سداد مسجل لهذا الشهر
       if (payment > 0) {
         profitPortion = payment <= inst.scheduledProfit ? payment : inst.scheduledProfit;
         principalPortion = payment - profitPortion;
       }
 
+      double expectedTotalBeforeThisMonth = ((principalAmount + totalProfit) -
+          (runningExpectedPrincipalPaid ))
+          .clamp(0.0, principalAmount + totalProfit);
+
       runningPrincipalPaid += principalPortion;
       runningProfitPaid += profitPortion;
       runningTotalPaid += payment;
 
-      // حساب التراكمي المفترض
       runningExpectedPrincipalPaid += expectedMonthlyPrincipal;
       runningExpectedProfitPaid += inst.scheduledProfit;
 
-      // حساب المتبقي الحقيقي بناءً على إجمالي الدفوعات التراكمية حتى هذا الشهر
       double remainingPrincipal = (principalAmount - runningPrincipalPaid).clamp(0.0, principalAmount);
       double remainingProfit = (totalProfit - runningProfitPaid).clamp(0.0, totalProfit);
       double remainingTotal = ((principalAmount + totalProfit) - runningTotalPaid).clamp(0.0, principalAmount + totalProfit);
 
-      // في حال تصفير المتبقي الكلي، تتصفر الأجزاء المتبقية تلقائياً
       if (remainingTotal <= 0.01) {
         remainingPrincipal = 0;
         remainingProfit = 0;
         remainingTotal = 0;
       } else {
-        // توزيع المتبقي الكلي على الأصل والربح بالتناسب
         if (remainingPrincipal + remainingProfit > remainingTotal) {
           remainingPrincipal = remainingTotal >= remainingPrincipal ? remainingPrincipal : remainingTotal;
           remainingProfit = (remainingTotal - remainingPrincipal).clamp(0.0, totalProfit);
         }
       }
 
-      // حسابات القسط والمتبقي المفترض
-      double expectedInstallment = expectedMonthlyPrincipal + inst.scheduledProfit;
+
+      double regularExpectedInstallment = expectedMonthlyPrincipal ;
+      double expectedInstallment = (expectedTotalBeforeThisMonth < regularExpectedInstallment)
+          ? expectedTotalBeforeThisMonth
+          : regularExpectedInstallment;
+
       double expectedRemainingPrincipal = (principalAmount - runningExpectedPrincipalPaid).clamp(0.0, principalAmount);
       double expectedRemainingTotal = ((principalAmount + totalProfit) - (runningExpectedPrincipalPaid + runningExpectedProfitPaid)).clamp(0.0, principalAmount + totalProfit);
 

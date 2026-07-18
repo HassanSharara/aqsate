@@ -154,23 +154,23 @@ class _LoanDetailScreenState extends State<LoanDetailScreen> {
                   child: SingleChildScrollView(
                     scrollDirection: Axis.horizontal,
                     child: DataTable(
-                      columnSpacing: 22,
-                      dataRowMinHeight: 52,
-                      dataRowMaxHeight: 60,
+                      columnSpacing: 20,
+                      dataRowMinHeight: 56,
+                      dataRowMaxHeight: 68,
+                      headingTextStyle: const TextStyle(
+                        color: AppColors.textSecondary,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w700,
+                      ),
                       columns: const [
                         DataColumn(label: Text('الشهر')),
-                        DataColumn(label: Text('الفائدة')),
-                        DataColumn(label: Text('المبلغ المتبقي الكلي')),
-
-                        DataColumn(label: Text('المبلغ المتبقي الصافي')),
-
+                        DataColumn(label: Text('الفائدة المجدولة')),
+                        DataColumn(label: Text('القسط المفترض هذا الشهر')),
+                        DataColumn(label: Text('المتبقي الكلي')),
+                        DataColumn(label: Text('المتبقي الصافي')),
                         DataColumn(label: Text('المسدد من قبل الزبون')),
-                        // DataColumn(label: Text('متبقي ربح')),
                         DataColumn(label: Text('تاريخ الاستحقاق')),
-
-
                         DataColumn(label: Text('')),
-
                       ],
                       rows: rows.map((r) => _buildRow(context, r, isFullyPaid, loan.principalAmount)).toList(),
                     ),
@@ -188,6 +188,8 @@ class _LoanDetailScreenState extends State<LoanDetailScreen> {
     final inst = r.installment;
     final paid = inst.paymentAmount > 0;
     final completed = r.remainingTotal <= 0.01;
+    final bool isOverpaid = paid && inst.paymentAmount > r.expectedInstallment + 1;
+    final bool isUnderpaid = paid && inst.paymentAmount < r.expectedInstallment - 1;
 
     return DataRow(
       color: WidgetStateProperty.resolveWith((states) {
@@ -217,8 +219,38 @@ class _LoanDetailScreenState extends State<LoanDetailScreen> {
             ),
           ),
         ),
-        DataCell(Text(Formatters.currency(inst.scheduledProfit),
-            style: const TextStyle(color: AppColors.accent))),
+        DataCell(Text(
+          Formatters.currency(inst.scheduledProfit),
+          style: const TextStyle(color: AppColors.accent, fontWeight: FontWeight.w700),
+        )),
+        DataCell(
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+            decoration: BoxDecoration(
+              color: AppColors.primary.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: AppColors.primary.withOpacity(0.3)),
+            ),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  Formatters.currency(r.expectedInstallment),
+                  style: const TextStyle(
+                    color: AppColors.primary,
+                    fontWeight: FontWeight.w800,
+                    fontSize: 13,
+                  ),
+                ),
+                Text(
+                  'أصل: ${Formatters.currency(r.expectedInstallment - inst.scheduledProfit)} | ربح: ${Formatters.currency(inst.scheduledProfit)}',
+                  style: const TextStyle(color: AppColors.textSecondary, fontSize: 9),
+                ),
+              ],
+            ),
+          ),
+        ),
         DataCell(
           Column(
             mainAxisAlignment: MainAxisAlignment.center,
@@ -253,70 +285,66 @@ class _LoanDetailScreenState extends State<LoanDetailScreen> {
         ),
         DataCell(
           paid
-              ? Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  crossAxisAlignment: CrossAxisAlignment.start,
+              ? Row(
+                  mainAxisSize: MainAxisSize.min,
                   children: [
-                    Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        const Icon(Icons.check_circle_rounded, size: 14, color: AppColors.success),
-                        const SizedBox(width: 5),
-                        Text(
-                          Formatters.currency(inst.paymentAmount),
-                          style: const TextStyle(
-                            color: AppColors.success,
-                            fontWeight: FontWeight.w700,
-                            fontSize: 13,
-                          ),
-                        ),
-                      ],
+                    Icon(
+                      isOverpaid
+                          ? Icons.arrow_upward_rounded
+                          : isUnderpaid
+                              ? Icons.arrow_downward_rounded
+                              : Icons.check_circle_rounded,
+                      size: 14,
+                      color: isOverpaid
+                          ? AppColors.info
+                          : isUnderpaid
+                              ? AppColors.accent
+                              : AppColors.success,
                     ),
+                    const SizedBox(width: 5),
                     Text(
-                      'المفترض: ${Formatters.currency(r.expectedInstallment)}',
-                      style: const TextStyle(color: AppColors.textSecondary, fontSize: 10),
+                      Formatters.currency(inst.paymentAmount),
+                      style: TextStyle(
+                        color: isOverpaid
+                            ? AppColors.info
+                            : isUnderpaid
+                                ? AppColors.accent
+                                : AppColors.success,
+                        fontWeight: FontWeight.w700,
+                        fontSize: 13,
+                      ),
                     ),
                   ],
                 )
-              : Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text('—', style: TextStyle(color: AppColors.textSecondary, fontSize: 13)),
-                    Text(
-                      'المفترض: ${Formatters.currency(r.expectedInstallment)}',
-                      style: const TextStyle(color: AppColors.textSecondary, fontSize: 10),
-                    ),
-                  ],
-                ),
+              : const Text('—', style: TextStyle(color: AppColors.textSecondary, fontSize: 13)),
         ),
-        DataCell(Text(Formatters.date(inst.dueDate))),
+        DataCell(Text(Formatters.date(inst.dueDate), style: const TextStyle(fontSize: 12))),
         DataCell(
-          // إخفاء زر السداد إذا تم سداد كامل القرض مبكراً لتجنب إدخال دفعات زائدة بالخطأ
           (isLoanFullyPaid && !paid)
               ? const SizedBox.shrink()
               : _PaymentIconButton(
             paid: paid,
-            onPressed: () => _showPaymentDialog(context, inst, r.expectedInstallment),
+            onPressed: () => _showPaymentDialog(context, r),
           ),
         ),
-
       ],
     );
+
   }
 
-  void _showPaymentDialog(BuildContext context, Installment inst, double expectedInstallment) {
+  void _showPaymentDialog(BuildContext context, InstallmentRow r) {
+    final inst = r.installment;
     String defaultText = '';
 
     if (inst.paymentAmount > 0) {
-      // في حالة التعديل، نظهر القيمة السابقة
       defaultText = inst.paymentAmount.round().toString();
     } else {
-      // في حالة السداد الجديد: القيمة الافتراضية هي القسط المفترض
-      defaultText = expectedInstallment.round().toString();
+      defaultText = r.expectedInstallment.round().toString();
     }
 
     final ctrl = TextEditingController(text: defaultText);
+    final double principalPart = r.expectedInstallment - inst.scheduledProfit;
+
     showDialog(
       context: context,
       builder: (_) => AlertDialog(
@@ -336,38 +364,38 @@ class _LoanDetailScreenState extends State<LoanDetailScreen> {
           ],
         ),
         content: SizedBox(
-          width: 340,
+          width: 360,
           child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              // بطاقة معلومات القسط المفترض
               Container(
-                padding: const EdgeInsets.all(12),
+                padding: const EdgeInsets.all(14),
                 decoration: BoxDecoration(
-                  color: AppColors.accent.withOpacity(0.12),
-                  borderRadius: BorderRadius.circular(10),
-                  border: Border.all(color: AppColors.accent.withOpacity(0.3)),
+                  color: AppColors.primary.withOpacity(0.08),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: AppColors.primary.withOpacity(0.25)),
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Row(
                       children: [
-                        const Icon(Icons.info_outline_rounded, color: AppColors.accent, size: 16),
+                        const Icon(Icons.calculate_rounded, color: AppColors.primary, size: 16),
                         const SizedBox(width: 8),
-                        Expanded(
-                          child: Text(
-                            'ربح هذا الشهر مجدول بـ: ${Formatters.currency(inst.scheduledProfit)}',
-                            style: const TextStyle(color: AppColors.accent, fontSize: 13, fontWeight: FontWeight.bold),
-                          ),
+                        const Text(
+                          'تفاصيل القسط المفترض هذا الشهر',
+                          style: TextStyle(color: AppColors.primary, fontSize: 13, fontWeight: FontWeight.w800),
                         ),
                       ],
                     ),
-                    const Divider(height: 16),
-                    Text(
-                      'المبلغ المقترح للتسديد (قسط أصل + ربح):',
-                      style: TextStyle(color: AppColors.textSecondary, fontSize: 11),
-                    ),
+                    const SizedBox(height: 10),
+                    _InfoRow('قسط الأصل', Formatters.currency(principalPart), AppColors.info),
+                    const SizedBox(height: 6),
+                    _InfoRow('الفائدة المجدولة', Formatters.currency(inst.scheduledProfit), AppColors.accent),
+                    Divider(color: AppColors.glassBorder, height: 16),
+                    _InfoRow('إجمالي القسط المفترض', Formatters.currency(r.expectedInstallment), AppColors.primary),
                   ],
                 ),
               ),
@@ -377,8 +405,9 @@ class _LoanDetailScreenState extends State<LoanDetailScreen> {
                 autofocus: true,
                 keyboardType: TextInputType.number,
                 decoration: const InputDecoration(
-                  labelText: 'مبلغ التسديد (د.ع)',
+                  labelText: 'مبلغ التسديد الفعلي (د.ع)',
                   prefixIcon: Icon(Icons.payments_outlined),
+                  helperText: 'ادخل المبلغ الفعلي المسدد من قبل الزبون',
                 ),
               ),
             ],
@@ -544,6 +573,31 @@ class _Stat extends StatelessWidget {
             fontWeight: FontWeight.w800,
             fontSize: 15,
             color: color == AppColors.textSecondary ? AppColors.textPrimary : color,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _InfoRow extends StatelessWidget {
+  final String label;
+  final String value;
+  final Color color;
+  const _InfoRow(this.label, this.value, this.color);
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Text(label, style: const TextStyle(color: AppColors.textSecondary, fontSize: 12)),
+        Text(
+          value,
+          style: TextStyle(
+            color: color,
+            fontWeight: FontWeight.w800,
+            fontSize: 13,
           ),
         ),
       ],
