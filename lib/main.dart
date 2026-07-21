@@ -15,11 +15,12 @@ Future<void> main() async {
     await windowManager.ensureInitialized();
 
     const windowOptions = WindowOptions(
-      size: Size(1440, 900),
-      minimumSize: Size(1024, 640),
+      size: Size(1600, 1000),
+      minimumSize: Size(1440, 900),
       center: true,
       backgroundColor: Colors.transparent,
-      title: 'اقساطي - إدارة القروض والأقساط',
+      title: 'منفذ الفيض العالي',
+      // fullScreen: true,
       titleBarStyle: TitleBarStyle.normal,
     );
 
@@ -42,7 +43,7 @@ class AqsatiApp extends StatelessWidget {
     return ChangeNotifierProvider(
       create: (_) => AppProvider()..init(),
       child: MaterialApp(
-        title: 'اقساطي',
+        title: 'منفذ الفيض العالي',
         debugShowCheckedModeBanner: false,
         theme: AppTheme.light,
         locale: const Locale('ar'),

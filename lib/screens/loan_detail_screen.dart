@@ -1,3 +1,4 @@
+import 'package:aqsatee/Handlers/Usb/usb_handler.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/app_provider.dart';
@@ -265,10 +266,10 @@ class _LoanDetailScreenState extends State<LoanDetailScreen> {
                 Formatters.currency(r.remainingTotal),
                 style: const TextStyle(fontWeight: FontWeight.w800, color: AppColors.textPrimary, fontSize: 16),
               ),
-              Text(
-                'المفترض: ${Formatters.currency(r.expectedRemainingTotal)}',
-                style: const TextStyle(color: AppColors.textSecondary, fontSize: 13),
-              ),
+              // Text(
+              //   'المفترض: ${Formatters.currency(r.expectedRemainingTotal)}',
+              //   style: const TextStyle(color: AppColors.textSecondary, fontSize: 13),
+              // ),
             ],
           ),
         ),
@@ -281,10 +282,10 @@ class _LoanDetailScreenState extends State<LoanDetailScreen> {
                 Formatters.currency(r.remainingPrincipal),
                 style: const TextStyle(color: AppColors.textPrimary, fontSize: 16),
               ),
-              Text(
-                'المفترض: ${Formatters.currency(r.expectedRemainingPrincipal)}',
-                style: const TextStyle(color: AppColors.textSecondary, fontSize: 13),
-              ),
+              // Text(
+              //   'المفترض: ${Formatters.currency(r.expectedRemainingPrincipal)}',
+              //   style: const TextStyle(color: AppColors.textSecondary, fontSize: 13),
+              // ),
             ],
           ),
         ),
@@ -325,12 +326,38 @@ class _LoanDetailScreenState extends State<LoanDetailScreen> {
         ),
         DataCell(Text(Formatters.date(inst.dueDate), style: const TextStyle(fontSize: 15))),
         DataCell(
-          (isLoanFullyPaid && !paid)
-              ? const SizedBox.shrink()
-              : _PaymentIconButton(
-            paid: paid,
-            onPressed: () => _showPaymentDialog(context, r),
-          ),
+         Row(
+           children: [
+             Padding(
+               padding:const EdgeInsets.all(8),
+               child:  (isLoanFullyPaid && !paid)
+                   ? const SizedBox.shrink()
+                   : _PaymentIconButton(
+                 paid: paid,
+                 onPressed: () => _showPaymentDialog(context, r),
+               ),
+             ),
+
+             ElevatedButton(
+                 style: ButtonStyle(
+                   backgroundColor: WidgetStatePropertyAll(
+                     !paid ? Colors.blueGrey:
+                     isUnderpaid ?
+                         Colors.orange:
+                         null
+                   )
+                 ),
+                 onPressed: ()async{
+                   await UsbHandler.instance.printInstallmentRow(r);
+                 }, child: Row(
+               children: [
+                 Icon(Icons.print),
+                 const SizedBox(width: 5,),
+                 Text("طباعة التفاصيل")
+               ],
+             ))
+           ],
+         )
         ),
       ],
     );

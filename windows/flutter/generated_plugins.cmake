@@ -3,8 +3,11 @@
 #
 
 list(APPEND FLUTTER_PLUGIN_LIST
+  pdfx
+  print_usb
   printing
   screen_retriever_windows
+  sharara_usb
   window_manager
 )
 

@@ -1,3 +1,4 @@
+import 'package:aqsatee/screens/usb.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/app_provider.dart';
@@ -30,12 +31,14 @@ class _MainLayoutState extends State<MainLayout> with SingleTickerProviderStateM
     _NavItem('لوحة التحكم', Icons.dashboard_rounded, Icons.dashboard_outlined),
     _NavItem('العملاء', Icons.people_alt_rounded, Icons.people_alt_outlined),
     _NavItem('الأقساط والقروض', Icons.receipt_long_rounded, Icons.receipt_long_outlined),
+    _NavItem('اعدادات الطابعة', Icons.local_print_shop_sharp, Icons.print),
   ];
 
   final List<Widget> _screens = const [
     DashboardScreen(),
     CustomersScreen(),
     LoansScreen(),
+    SelectPosPrinter(),
   ];
 
   @override
@@ -178,27 +181,35 @@ class _SideNav extends StatelessWidget {
                       if (extended) ...[
                         const SizedBox(width: 12),
                         Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              const Text(
-                                'اقساطي',
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 20,
-                                  fontWeight: FontWeight.w800,
-                                  letterSpacing: 0.5,
-                                ),
+                          child: Material(
+                            child: Padding(
+                              padding: const EdgeInsets.all(8.0),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  const Text(
+                                    'منفذ الفيض العالي',
+                                    style: TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 20,
+                                      fontWeight: FontWeight.w800,
+                                      letterSpacing: 0.5,
+                                    ),
+                                    textAlign:TextAlign.center,
+                                  ),
+                                  // Text(
+                                  //   'إدارة القروض والأقساط',
+                                  //   style: TextStyle(
+                                  //     color: Colors.white.withOpacity(0.45),
+                                  //     fontSize: 11,
+                                  //     fontWeight: FontWeight.w500,
+                                  //   ),
+                                  //   textAlign:TextAlign.center,
+                                  //
+                                  // ),
+                                ],
                               ),
-                              Text(
-                                'إدارة القروض والأقساط',
-                                style: TextStyle(
-                                  color: Colors.white.withOpacity(0.45),
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.w500,
-                                ),
-                              ),
-                            ],
+                            ),
                           ),
                         ),
                       ],
