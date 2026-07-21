@@ -2,6 +2,7 @@ import 'package:aqsatee/models/installment.dart';
 import 'package:esc_pos_utils_plus/esc_pos_utils_plus.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
 import 'package:image/image.dart' as img;
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
@@ -51,7 +52,7 @@ final class UsbHandler {
     final doc = pw.Document();
 
     final double titleSize = isReceipt ? 18 : 22;
-    final double subtitleSize = isReceipt ? 14 : 16;
+    // final double subtitleSize = isReceipt ? 14 : 16;
     final double bodySize = isReceipt ? 10 : 14;
     final double highlightSize = isReceipt ? 11 : 15;
 
@@ -71,14 +72,14 @@ final class UsbHandler {
                   fontWeight: pw.FontWeight.bold,
                 ),
               ),
-              pw.SizedBox(height: isReceipt ? 4 : 6),
-              pw.Text(
-                "وصل استلام قسط",
-                style: pw.TextStyle(
-                  font: font,
-                  fontSize: subtitleSize,
-                ),
-              ),
+              // pw.SizedBox(height: isReceipt ? 4 : 6),
+              // pw.Text(
+              //   "وصل استلام قسط",
+              //   style: pw.TextStyle(
+              //     font: font,
+              //     fontSize: subtitleSize,
+              //   ),
+              // ),
               pw.SizedBox(height: isReceipt ? 8 : 16),
               pw.Divider(borderStyle: pw.BorderStyle.dashed),
               pw.SizedBox(height: isReceipt ? 8 : 16),
@@ -152,59 +153,101 @@ final class UsbHandler {
     return doc;
   }
 
-  Future<void> printInstallmentRow(final InstallmentRow r) async {
+  Future<void> printInstallmentRow(final InstallmentRow r,BuildContext context) async {
     final selectedUsb = selectedDevice.value;
-    if (selectedUsb == null) return;
+    final sMessenger = ScaffoldMessenger.of(context);
 
-    final doc = await _buildInstallmentPdf(
-      r,
-      pageFormat: PdfPageFormat.roll80,
-      isReceipt: true,
+    if (selectedUsb == null) {
+      sMessenger.showSnackBar(SnackBar(content: Text("يجب في الاول اختيار الطابعة من اعدادات الطابعة",style:TextStyle(color:Colors.white,
+        fontSize:22
+      ),),
+        backgroundColor:Colors.red,
+      ),
+      );
+      return;
+    }
+
+    final snack = SnackBar(content: Row(
+      children: [
+        SizedBox(
+            height:10,
+            width:15,
+            child: LinearProgressIndicator()),
+        const SizedBox(width: 5,),
+        Text("جاري ارسال البيانات الى الطابعة"),
+
+      ],
+    ),
+    );
+    sMessenger.showSnackBar(snack,
     );
 
-    final documentBytes = await doc.save();
-    final profile = await CapabilityProfile.load();
-    const paperSize = PaperSize.mm80;
-
-    final List<int> bytes = [];
-    final pdfx.PdfDocument document = await pdfx.PdfDocument.openData(documentBytes);
-     final Generator generator  = Generator(paperSize, profile);
-
-    for (int i = 0; i < document.pagesCount; i++) {
-      final pdfx.PdfPage page = await document.getPage(i + 1);
-
-      final double height = page.height * 3;
-      final int width = page.width.toInt() * 2 + 120;
-
-      final pdfx.PdfPageImage? pageImage = await page.render(
-        width: width.toDouble(),
-        height: height,
+    try {
+      final doc = await _buildInstallmentPdf(
+        r,
+        pageFormat: PdfPageFormat.roll80,
+        isReceipt: true,
       );
 
-      if (pageImage != null) {
-        final image = await compute(img.decodeImage, pageImage.bytes);
+      final documentBytes = await doc.save();
+      final profile = await CapabilityProfile.load();
+      const paperSize = PaperSize.mm80;
 
-        if (image != null) {
-          final List<int> imageBytes = await compute(
-            _processEscPosIsolate,
-            _GeneratorParams(image, paperSize, profile),
-          );
-          bytes.addAll(imageBytes);
+      final List<int> bytes = [];
+      final pdfx.PdfDocument document = await pdfx.PdfDocument.openData(documentBytes);
+      // final Generator generator  = Generator(paperSize, profile);
+
+      for (int i = 0; i < document.pagesCount; i++) {
+        final pdfx.PdfPage page = await document.getPage(i + 1);
+
+        final double height = page.height * 3;
+        final int width = page.width.toInt() * 2 + 120;
+
+        final pdfx.PdfPageImage? pageImage = await page.render(
+          width: width.toDouble(),
+          height: height,
+        );
+
+        if (pageImage != null) {
+          final image = await compute(img.decodeImage, pageImage.bytes);
+
+          if (image != null) {
+            final List<int> imageBytes = await compute(
+              _processEscPosIsolate,
+              _GeneratorParams(image, paperSize, profile),
+            );
+            bytes.addAll(imageBytes);
+          }
         }
+        await page.close();
       }
-      await page.close();
-    }
 
-    bytes.addAll(generator.cut());
-    // bytes.addAll(generator.text("hello world"));
-    // bytes.addAll(generator.feed(4));
-    await document.close();
+      // bytes.addAll(generator.cut());
+      // bytes.addAll(generator.text("hello world"));
+      // bytes.addAll(generator.feed(4));
+      await document.close();
 
-    if (bytes.isNotEmpty) {
-      if(!await selectedUsb.isConnected )await selectedUsb.connect();
-      await selectedUsb.writeData(bytes);
+      if (bytes.isNotEmpty) {
+        if(!await selectedUsb.isConnected )await selectedUsb.connect();
+        await selectedUsb.writeData(bytes);
+      }
+    }catch(_){}
+    finally {
+      try {
+        sMessenger.hideCurrentSnackBar();
+        sMessenger.showSnackBar(SnackBar(content: Text("تمت الطباعة بنجاح",style:TextStyle(color:Colors.white,
+            fontSize:22
+        ),),
+          backgroundColor:Colors.green,
+        ),
+        );
+      }catch(_){
+
+      }
+
     }
   }
+
 
   Future<void> shareInstallmentPdf(final InstallmentRow r) async {
     final doc = await _buildInstallmentPdf(

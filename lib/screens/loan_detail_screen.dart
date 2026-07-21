@@ -348,7 +348,8 @@ class _LoanDetailScreenState extends State<LoanDetailScreen> {
                    )
                  ),
                  onPressed: ()async{
-                   await UsbHandler.instance.printInstallmentRow(r);
+
+                   await UsbHandler.instance.printInstallmentRow(r,context);
                  }, child: Row(
                children: [
                  Icon(Icons.print),
